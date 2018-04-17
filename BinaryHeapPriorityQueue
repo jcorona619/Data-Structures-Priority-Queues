@@ -1,0 +1,230 @@
+//Author: Joshua Corona
+
+package data_structures;
+
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public class BinaryHeapPriorityQueue<E extends Comparable<E>> implements PriorityQueue<E> {
+	private int currentSize;
+	private int maxSize;
+	private long entryNumber;
+	private int modCount;
+	private Wrapper<E> [] storage;
+	
+	//Constructor
+	public BinaryHeapPriorityQueue(int max) {
+		maxSize = max;
+		currentSize = 0;
+		entryNumber = 0;
+		modCount = 0;
+		storage = new Wrapper[maxSize];
+		}
+	
+	public BinaryHeapPriorityQueue() {
+		this(DEFAULT_MAX_CAPACITY);
+	}
+	
+        // This is a wrapper class that deals with duplicate entries into the PQ.
+        // If two objects are equal, they can be compared by the sequence numbers 
+        // which determines which object was inserted into the PQ first.
+	protected class Wrapper<E> implements Comparable<Wrapper<E>>{
+		E data;
+		long sequenceNumber;
+		
+		public Wrapper(E obj){
+			data = obj;
+			sequenceNumber = entryNumber++;
+		}
+		
+		public int compareTo(Wrapper<E> w) {
+			int compare = ((Comparable<E>) data).compareTo(w.data);
+			if(compare == 0)
+				return (int) (sequenceNumber - w.sequenceNumber);
+			return compare;
+		}
+	}
+	
+    //  Inserts a new object into the priority queue.  Returns true if
+    //  the insertion is successful.  If the PQ is full, the insertion
+    //  is aborted, and the method returns false.
+    public boolean insert(E obj) {
+    	if(isFull())
+    		return false;
+    	Wrapper<E> newValue = new Wrapper<E>(obj);
+    	currentSize++;
+    	modCount++;
+    	trickleUp(newValue);
+    	return true;
+    }
+   
+    //  Removes the object of highest priority that has been in the
+    //  PQ the longest, and returns it.  Returns null if the PQ is empty.
+    public E remove() {
+    	if(isEmpty())
+    		return null;
+    	E temp = storage[0].data;
+    	storage[0] = storage[currentSize -1];
+    	currentSize--;
+    	modCount++;
+    	trickleDown();
+    	return temp;
+    }
+    
+    //  Deletes all instances of the parameter obj from the PQ if found, and
+    //  returns true.  Returns false if no match to the parameter obj is found.
+    
+    public boolean delete(E obj) {
+    	if(!contains(obj))
+    		return false;
+    	int size = currentSize;
+    	BinaryHeapPriorityQueue<E> temp = new BinaryHeapPriorityQueue<E>(currentSize);
+    	for(int i=0; i<size; i++) {
+    		E heapValue = remove();
+    		if(heapValue.compareTo(obj) != 0) {
+    			temp.insert(heapValue);
+    		}
+    	}
+    	this.storage = temp.storage;
+    	this.currentSize = temp.currentSize;
+    	this.modCount = temp.modCount;
+    	return true;
+    }
+   
+    //  Returns the object of highest priority that has been in the
+    //  PQ the longest, but does NOT remove it. 
+    //  Returns null if the PQ is empty.
+    public E peek() {
+    	if(isEmpty())
+    		return null;
+    	return storage[0].data;
+    }
+    
+    //  Returns true if the priority queue contains the specified element
+    //  false otherwise.
+    public boolean contains(E obj) {
+    	for(int i=0; i<currentSize;i++)
+    		if(storage[i].data.compareTo(obj) == 0)
+    			return true;
+    	return false;
+    }
+   
+    //  Returns the number of objects currently in the PQ.
+    public int size() { return currentSize; }
+      
+    //  Returns the PQ to an empty state.
+    public void clear() { currentSize = 0; }
+   
+    //  Returns true if the PQ is empty, otherwise false
+    public boolean isEmpty() { return currentSize == 0; }
+   
+    //  Returns true if the PQ is full, otherwise false.  List based
+    //  implementations should always return false.
+    public boolean isFull() { return currentSize == maxSize; }  
+    
+    //  Returns an iterator of the objects in the PQ, in no particular
+    //  order.  
+    public Iterator<E> iterator(){
+    	return new IteratorHelper();
+    }
+    
+    //-----Nested Class---------------------------------
+        class IteratorHelper implements Iterator<E>{  //FAIL-FAST ITERATOR
+                private int index;
+                private long modCheck;
+
+                public IteratorHelper() {
+                        index = 0;
+                        modCheck = modCount;
+                }
+
+                public boolean hasNext() {
+                        if(modCheck != modCount)
+                                throw new ConcurrentModificationException();
+                        return index != currentSize;
+                }
+
+                public E next() {
+                        if(!hasNext())
+                                throw new NoSuchElementException();
+                        return storage[index++].data;
+                }
+
+                public void remove() {
+                throw new UnsupportedOperationException();
+                }
+        }//---End Nested Class---------------
+
+        // The trickle up method inserts a new object at the end of the array and
+        // becomes a new child. This new child is then compared to its parent. If 
+        // the parent is greater than the child, they are swapped. This is done 
+        // until proper min heap order is attained.
+        
+        private void trickleUp(Wrapper<E> newValue) {
+                int currentIndex = currentSize - 1;
+        int parentIndex = (currentIndex-1) >> 1;
+        storage[currentIndex] = newValue;
+        while(parentIndex >= 0 && storage[currentIndex].data.compareTo(storage[parentIndex].data) < 0) {
+                swap(currentIndex, parentIndex);
+                currentIndex = parentIndex;
+                parentIndex = (parentIndex-1) >> 1;
+        }
+        }
+        // The trickle down method removes the first object in the array, fills that position
+        // with the last element in the array, and the array size is logically decremented. 
+        // The tickle down method uses a private getMinChild() method to determine which child
+        // is smaller. If the parent is larger than the smaller child, the two objects are swapped.
+        // This continues until the min heap order is attained.
+        
+        private void trickleDown() {
+                int parent = 0;
+                int minChild = getMinChild(parent);
+                while(minChild != -1 && storage[minChild].data.compareTo(storage[parent].data) <= 0) {
+                        swap(minChild,parent);
+                        parent = minChild;
+                        minChild = getMinChild(parent);
+                }
+        }
+
+        // The getMinChild() determines which child is smaller. If the two children have the same priority,
+        // the sequence numbers are compared to determine which object was inserted into the PQ first. So, 
+        // if the children are equal, the child with the smaller sequence number becomes the minChild. If
+        // no children are smaller than the parent, the method returns -1.
+        private int getMinChild(int parent) {
+                int left = (parent << 1) + 1;
+                int right = left + 1;
+                int minRank = 0;
+                if(right < currentSize) {
+                        if(storage[left].data.compareTo(storage[right].data) == 0) {
+                                if(storage[left].sequenceNumber < storage[right].sequenceNumber)
+                                        minRank = left;
+                                else
+                                        minRank = right;
+                                if(storage[minRank].data.compareTo(storage[parent].data) == 0) {
+                                        if(storage[minRank].sequenceNumber > storage[parent].sequenceNumber)
+                                                return -1;
+                                        return minRank;
+                                }
+                                return minRank;
+                        }
+                        if(storage[left].data.compareTo(storage[right].data) < 0)
+                                return left;
+                        return right;
+                }
+                else if(left < currentSize) {
+                        if(storage[left].data.compareTo(storage[parent].data) == 0)
+                                        if(storage[left].sequenceNumber > storage[parent].sequenceNumber)
+                                                return -1;
+                                return left;
+                }
+                        return -1;
+        }
+
+        //Simple Swap Method
+        private void swap(int index1, int index2){
+                Wrapper<E> temp = storage[index2];
+                storage[index2] = storage[index1];
+                storage[index1] = temp;
+        }
+}
