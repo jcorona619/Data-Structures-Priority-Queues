@@ -1,0 +1,156 @@
+//Author: Joshua Corona
+
+package data_structures;
+
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public class OrderedArrayPriorityQueue<E extends Comparable<E>> implements PriorityQueue<E> {
+	private E [] storage;
+	private int maxSize;
+	private int currentSize;
+	
+	//Constructor
+	public OrderedArrayPriorityQueue(int max) {
+		maxSize = max;
+		currentSize = 0;
+		storage = (E[]) new Comparable[maxSize];
+	}
+	
+	public OrderedArrayPriorityQueue() {
+		this(DEFAULT_MAX_CAPACITY);
+	}
+	
+	 //  Inserts a new object into the priority queue.  Returns true if
+    //  the insertion is successful.  If the PQ is full, the insertion
+    //  is aborted, and the method returns false.
+    
+    public boolean insert(E object) {
+    	if(isFull())
+    		return false;
+    	int index = findInsertionIndex(object, 0, currentSize-1);
+    	currentSize++;
+    	for(int i = currentSize-1; i > index; i--)
+    		storage[i] = storage[i-1];
+    	storage[index] = object;
+    	return true;
+    }
+   
+    //  Removes the object of highest priority that has been in the
+    //  PQ the longest, and returns it.  Returns null if the PQ is empty.
+    
+    public E remove() {
+    	if(isEmpty())
+    		return null;
+    	return storage[--currentSize];
+    	}
+    
+    //  Deletes all instances of the parameter obj from the PQ if found, and
+    //  returns true.  Returns false if no match to the parameter obj is found.
+    
+    public boolean delete(E object) {
+    	if(!contains(object))
+    		return false;
+    	int deleteCount = 0;
+    	int index = findInsertionIndex(object,0,currentSize-1);
+    	while(object.compareTo(storage[index]) == 0) {
+    		deleteCount++;
+    		index++;
+    	}
+    	index -= deleteCount;
+    	for(int i = index; i<(deleteCount+index);i++)
+    		storage[i] = storage[i+deleteCount];
+    	currentSize -= deleteCount;
+    	return true;
+    }
+   
+    //  Returns the object of highest priority that has been in the
+    //  PQ the longest, but does NOT remove it. 
+    //  Returns null if the PQ is empty.
+    
+    public E peek() {
+    	if(isEmpty())
+    		return null;
+    	return storage[currentSize-1]; 
+    	}
+    
+    //  Returns true if the priority queue contains the specified element
+    //  false otherwise.
+    
+    public boolean contains(E object) {
+    	if( (isEmpty()) || (findElement(object,0,currentSize-1) == -1) )
+    		return false;
+	return true;
+    	
+    }
+   
+    //  Returns the number of objects currently in the PQ.
+    
+    public int size() { return currentSize; }
+      
+    //  Returns the PQ to an empty state.
+    
+    public void clear() { currentSize = 0; }
+   
+    //  Returns true if the PQ is empty, otherwise false
+    
+    public boolean isEmpty() { return currentSize == 0; }
+   
+    //  Returns true if the PQ is full, otherwise false.  List based
+    //  implementations should always return false.
+    
+    public boolean isFull() { return currentSize == maxSize; }  
+    
+    //  Returns an iterator of the objects in the PQ, in no particular
+    //  order.  
+    
+    public Iterator<E> iterator(){
+    	return new IteratorHelper();
+    }
+    
+  //-----Nested Class---------------------------------
+  	class IteratorHelper implements Iterator<E>{
+  		private int index;
+  		
+  		public boolean hasNext() {
+  			return index != currentSize;
+  		}
+  		
+  		public E next() {
+  			if(!hasNext())
+  				throw new NoSuchElementException();
+  			return storage[index++];
+  		}
+  		
+  		public void remove() {
+  	    	throw new UnsupportedOperationException();
+  	    	}
+  	}//---End Nested Class------------------------------
+  	
+  	//Private Binary Search Method that is an unsuccessful search for
+    //the object to be deleted. This finds where the new object needs 
+    //to be inserted in the array.
+    
+  	private int findInsertionIndex(E object, int low, int high) {
+  		if(high < low)
+  			return low;
+  		int mid = (low + high)/2;
+  		if(object.compareTo(storage[mid]) >= 0)
+  			return findInsertionIndex(object,low,mid-1);	//search left
+  		else
+  			return findInsertionIndex(object,mid+1,high);	//search right
+  	}
+  	
+    //Common Binary Search Method
+  	private int findElement(E object, int low, int high) {
+  		if(high < low)
+  			return -1;
+  		int mid = (low + high)/2;
+  		if(object.compareTo(storage[mid]) == 0)
+  			return mid;
+  		if(object.compareTo(storage[mid]) > 0)
+  			return findElement(object, low, mid-1);	//search left
+  		else
+  			return findElement(object, mid+1,high);	//search right
+  	}
+}
